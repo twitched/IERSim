@@ -9,7 +9,6 @@ date: today
 #| echo: false
 
 library(tidyverse)
-library(lavaan)
 
 set.seed(1337)
 
@@ -85,6 +84,41 @@ mallories(1, sim_data) |> histograms()
 
 ```
 
+### Create Dataset with 20% Mallories
+
+```{r}
+# define the mallory function
+example_data <- sim_data
+
+# generate data with 20% mallories
+IER_Sim_Data <- mallories(nrow(example_data) * 0.2, example_data) |> #generate mallories
+  bind_rows(slice_sample(example_data, n = nrow(example_data) * 0.8)) %>%  # combine with 80% of the original data
+  slice_sample(n = nrow(.)) # shuffle the data
+
+IER_Sim_Data
+```
+
+### Graph 20% Mallory
+
+```{r}
+IER_Sim_Data |> histograms()
+```
+### Download 20% Mallory Data
+
+```{r}
+#| echo: false
+library(downloadthis)
+IER_Sim_Data |>
+  download_this(
+    output_name = "simulated_cmv_data",
+    output_extension = ".xlsx",
+    button_label = "Download data",
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+```
+
 ## Avatar 2: Darren
 
 Darren is an attorney and works for the same company as Mallory. He’s never been a fan of the surveys because frankly, he feels like he is way too busy for something as silly as academic research. However, everyone hounds him to complete the surveys when they come around because of the promise of a half-day off work if the participation rate for the survey is high enough. He’s worried that if he doesn’t appear to take the survey seriously, his responses won’t be recorded, rendering his time completing the survey completely wasted. So, to appear like he’s thoughtfully responding to the survey, he randomly selects responses to the survey items so that there’s no risk of his responses being scrapped.
@@ -114,6 +148,39 @@ darren(10, sim_data)
 #| warning: false
 
 darren(500, sim_data) |> histograms()
+```
+
+### Create Dataset with 20% Darrens
+
+```{r}
+# generate data with 20% darrens
+IER_Sim_Data <- darren(nrow(example_data) * 0.2, example_data) |> #generate darrens
+  bind_rows(slice_sample(example_data, n = nrow(example_data) * 0.8)) %>%  # combine with 80% of the original data
+  slice_sample(n = nrow(.)) # shuffle the data
+
+IER_Sim_Data
+```
+
+### Graph 20% Darren
+
+```{r}
+IER_Sim_Data |> histograms()
+```
+
+### Download 20% Darren Data
+
+```{r}
+#| echo: false
+library(downloadthis)
+IER_Sim_Data |>
+  download_this(
+    output_name = "simulated_cmv_data",
+    output_extension = ".xlsx",
+    button_label = "Download data",
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
 ```
 
 ## Avatar 3: Bart
@@ -167,6 +234,38 @@ bart(slice_sample(sim_data, n = 10))
 #| warning: false
 
 bart(sim_data) |> histograms()
+```
+
+### Generate 20% Bart Data
+```{r}
+IER_Sim_Data <- slice_sample(example_data, n = nrow(example_data) * 0.2) |> 
+  bart() |> #generate barts
+  bind_rows(slice_sample(example_data, n = nrow(example_data) * 0.8)) %>%  # combine with 80% of the original data
+  slice_sample(n = nrow(.)) # shuffle the data
+
+IER_Sim_Data
+```
+
+### Graph 20% Bart
+
+```{r}
+IER_Sim_Data |> histograms()
+```
+
+### Download 20% Bart Data
+
+```{r}
+#| echo: false
+library(downloadthis)
+IER_Sim_Data |>
+  download_this(
+    output_name = "simulated_cmv_data",
+    output_extension = ".xlsx",
+    button_label = "Download data",
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
 ```
 
 ## Avatar 4: Scarlett
@@ -246,4 +345,35 @@ scarlett(10, page_table)
 #| warning: false
 
 scarlett(500, page_table) |> histograms()
+```
+
+### Generate 20% Scarlett Data
+```{r}
+IER_Sim_Data <- scarlett(nrow(example_data) * 0.2, page_table) |> #generate scarletts
+  bind_rows(slice_sample(example_data, n = nrow(example_data) * 0.8)) %>%  # combine with 80% of the original data
+  slice_sample(n = nrow(.)) # shuffle the data
+
+IER_Sim_Data
+```
+
+### Graph 20% Scarlett
+
+```{r}
+IER_Sim_Data |> histograms()
+```
+
+### Download 20% Scarlett Data
+
+```{r}
+#| echo: false
+library(downloadthis)
+IER_Sim_Data |>
+  download_this(
+    output_name = "simulated_cmv_data",
+    output_extension = ".xlsx",
+    button_label = "Download data",
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
 ```
