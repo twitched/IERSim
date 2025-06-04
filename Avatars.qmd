@@ -21,10 +21,13 @@ histograms <- function(data) {
   data$name <- as.character(data$name)
   data$name <- factor(data$name, levels=unique(data$name))
   
+  #make all of the data factors 
+  data <- data |> mutate(across(everything(), ~factor(.x)))
+  
   #plot
   ggplot(data, aes(value)) +
-  geom_histogram(binwidth = .5) +
-  scale_x_continuous(breaks = seq(1, 7, 1), limits = c(0.5, 7.5)) +
+  geom_bar(stat = "count", width = .5) +
+  scale_x_discrete(limit = c("1","2","3","4","5","6","7")) +
   facet_wrap(vars(name))
 }
 
@@ -286,31 +289,36 @@ To make this work, we need to indicate which items are on a page.
 # We'll create a tibble with each variable and on what page it appears
 page_table <- tribble(
   ~question, ~page,
-   "ssr1",   1,
-   "ssr2",   1,
-   "ssr3",   1,
-   "ri1",    1,
-   "ri2",    1,
-   "ri3",    1,
-   "wom1",   1,
-   "wom2",   1,
-   "wom3",   1,
-   "cmv1",   1,
-   "sat1",   2,
-   "sat2",   2,
-   "sat3",   2,
-   "dj1",    2,
-   "dj2",    2,
-   "dj3",    2,
-   "dj4",    2,
-   "ij1",    3,
-   "ij2",    3,
-   "ij3",    3,
-   "ij4",    3,
-   "pj1",    3,
-   "pj2",    3,
-   "pj3",    3,
-   "pj4",    3
+  "ss1",    1,
+  "ss2",    1,
+  "ss3",    1,
+  "dj1",    1,
+  "dj2",    1,
+  "dj3",    1,
+  "pj1",    2,
+  "pj2",    2,
+  "pj3",    2,
+  "pj4",    2,
+  "pj5",    2,
+  "pj6",    2,
+  "pj7",    2,
+  "ij1",    3, 
+  "ij2",    3, 
+  "ij3",    3, 
+  "ij4",    3,
+  "infoj1",    3, 
+  "infoj2",    3, 
+  "infoj3",    3, 
+  "infoj4",    3,
+  "pa1",     4, 
+  "pa2",     4,
+  "pa3",    4,
+  "nega1",    4, 
+  "nega2",    4, 
+  "nega3",    4,
+  "pos1",    5, 
+  "pos2",    5, 
+  "pos3",    5
 )
 
 # This function will return num_rows scarletts with the structure of example_data and the page structure abov
