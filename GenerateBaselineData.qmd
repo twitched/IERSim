@@ -1,0 +1,321 @@
+---
+title: "GenerateBaselineData"
+author: "Twitchell"
+date: today
+format:
+  html:
+    page-layout: full
+    theme: 
+      - cosmo 
+      - custom.scss
+    monofont: "Fira Code"
+    df-print: paged
+bibliography: references.bib
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+library(tidyverse)
+library(lavaan)
+
+set.seed(1337)
+#plan("multicore") # when using parallel processing in furrr, use all cores
+
+source("cmv_sim_functions.R", local = knitr::knit_global())
+```
+
+## Introduction
+
+In this document we generate a random dataset using the model analyzed in [@kurtessis_perceived_2017]
+
+## The model
+
+The model we will use has the constructs in Table 1 below
+
+| Construct                           | Abbreviation | Number of measures |
+|-------------------------------------|--------------|--------------------|
+| Supervisor Support^a^               | SS           | 3                  |
+| Fairness^b^                         |              |                    |
+|  Distributed Justice                | DJ           | 3                  |
+|  Procedural Justice                 | PJ           | 7                  |
+|  Interpersonal Justice              | IJ           | 7                  |
+|  Information Justice                | INFOJ        | 4                  |
+| Positive Affectivity^c^             | PA           | 3                  |
+| Negative Affectivity^d^             | NEGA         | 4                  |
+| Perceived Organizational Support^e^ | POS          | 3                  |
+
+::: footnotes
+^a^[@eisenberger_perceived_2002]\
+^b^Composite of Distributed, Procedural, Interpersonal, and Information Justice as defined in [@skarlicki_getting_2008] and [@kurtessis_perceived_2017]\
+^c^[@tellegen_dimensional_1999]\
+^d^[@tellegen_dimensional_1999]\
+^e^Three items highest items from [@eisenberger_perceived_1986] as used in [@eisenberger_perceived_2002]
+:::
+
+Each of these constructs has several measures, and the model is expressed as a confirmatory factor analysis in the lavaan equation below and associated diagram
+
+```{r}
+cfa_sim_model <- "
+  # Measurement model
+  SS =~ ss1 + ss2 + ss3
+  
+  #Fairness is made up of DJ, PJ, IJ, and INFOJ
+  DJ  =~ dj1 + dj2 + dj3
+  PJ  =~ pj1 + pj2 + pj3 + pj4 + pj5 + pj6 + pj7
+  IJ  =~ ij1 + ij2 + ij3 + ij4
+  INFOJ  =~ infoj1 + infoj2 + infoj3 + infoj4
+  
+  PA =~ pa1 + pa2 + pa3
+  NEGA =~ nega1 + nega2 + nega3
+  POS =~ pos1 + pos2 + pos3
+
+  #Structural Model of Fairness
+  F =~ DJ + PJ + IJ + INFOJ
+
+  # Variances
+  SS ~~ SS
+  F ~~ F
+  DJ ~~ DJ
+  PJ ~~ PJ
+  IJ ~~ IJ
+  INFOJ ~~ INFOJ
+  NEGA ~~ NEGA
+  PA ~~ PA
+  POS ~~ POS
+"
+```
+
+## The Data
+
+The data we have to inform the simulation include the correlations among the latent variables and the factor loadings
+
+|      | SS   | F    | PA   | NegA | POS |
+|:-----|:-----|:-----|:-----|:-----|:----|
+| SS   | —    |      |      |      |     |
+| F    | .61  | —    |      |      |     |
+| PA   | .33  | .26  | —    |      |     |
+| NegA | –.30 | –.22 | –.36 | —    |     |
+| POS  | .60  | .70  | .34  | –.43 | —   |
+
+: Latent Variable Correlations
+
+| Latent Variables | Indicators | Factor Loadings |
+|:-----------------|:-----------|:----------------|
+| S                | ss1        | .71             |
+|                  | ss2        | .74             |
+|                  | ss3        | .83             |
+| DJ               | dj1        | .90             |
+|                  | dj2        | .96             |
+|                  | dj3        | .95             |
+| PJ               | pj1        | .70             |
+|                  | pj2        | .65             |
+|                  | pj3        | .72             |
+|                  | pj4        | .76             |
+|                  | pj5        | .82             |
+|                  | pj6        | .72             |
+|                  | pj7        | .61             |
+| IJ               | ij1        | .89             |
+|                  | ij2        | .96             |
+|                  | ij3        | .96             |
+|                  | ij4        | .78             |
+| INFOJ            | infoj1     | .77             |
+|                  | infoj2     | .92             |
+|                  | infoj3     | .93             |
+|                  | infoj4     | .85             |
+| PA               | pa1        | .81             |
+|                  | pa2        | .80             |
+|                  | pa3        | .76             |
+| NEGA             | nega1      | .89             |
+|                  | nega2      | .88             |
+|                  | nega3      | .87             |
+| POS              | pos1       | .72             |
+|                  | pos2       | .76             |
+|                  | pos3       | .80             |
+
+: Factor Loadings
+
+## Simulating New Data
+
+```{r}
+# Install and load the lavaan package if you haven't already
+# install.packages("lavaan")
+library(lavaan)
+
+# Define the lavaan model syntax
+model <- '
+  # Measurement model
+  SS =~ ss1 + ss2 + ss3
+
+  #Fairness is made up of DJ, PJ, IJ, and INFOJ
+  DJ  =~ dj1 + dj2 + dj3
+  PJ  =~ pj1 + pj2 + pj3 + pj4 + pj5 + pj6 + pj7
+  IJ  =~ ij1 + ij2 + ij3 + ij4
+  INFOJ  =~ infoj1 + infoj2 + infoj3 + infoj4
+
+  PA =~ pa1 + pa2 + pa3
+  NEGA =~ nega1 + nega2 + nega3
+  POS =~ pos1 + pos2 + pos3
+
+  #F is a higher order factor
+  F =~ DJ + PJ + IJ + INFOJ
+
+  # Latent variable correlations (specified as covariances in lavaan for simulation)
+  # We need to translate correlations into covariances. If latent variables
+  # are standardized to have variance 1, then correlations equal covariances.
+  # Assuming latent variables have variance 1 for ease of simulation 
+
+  SS ~~ 1*SS # Fix variance of latent variables to 1 for correlation interpretation
+  F ~~ 1*F
+  DJ ~~ 1*DJ
+  PJ ~~ 1*PJ
+  IJ ~~ 1*IJ
+  INFOJ ~~ 1*INFOJ
+  PA ~~ 1*PA
+  NEGA ~~ 1*NEGA
+  POS ~~ 1*POS
+
+  SS ~~ 0.61*F
+  SS ~~ 0.33*PA
+  SS ~~ -0.30*NEGA
+  SS ~~ 0.60*POS
+  F ~~ 0.26*PA
+  F ~~ -0.22*NEGA
+  F ~~ 0.70*POS
+  PA ~~ -0.36*NEGA
+  PA ~~ 0.34*POS
+  NEGA ~~ -0.43*POS
+
+  # Specify factor loadings
+  SS =~ 0.71*ss1 + 0.74*ss2 + 0.83*ss3
+  DJ =~ 0.90*dj1 + 0.96*dj2 + 0.95*dj3
+  PJ =~ 0.70*pj1 + 0.65*pj2 + 0.72*pj3 + 0.76*pj4 + 0.82*pj5 + 0.72*pj6 + 0.61*pj7
+  IJ =~ 0.89*ij1 + 0.96*ij2 + 0.96*ij3 + 0.78*ij4
+  INFOJ =~ 0.77*infoj1 + 0.92*infoj2 + 0.93*infoj3 + 0.85*infoj4
+  PA =~ 0.81*pa1 + 0.80*pa2 + 0.76*pa3
+  NEGA =~ 0.89*nega1 + 0.88*nega2 + 0.87*nega3
+  POS =~ 0.72*pos1 + 0.76*pos2 + 0.80*pos3
+  # Factor loadings for F from DJ, PJ, IJ, INFOJ - assuming these are treated as indicators of F
+  F =~ 0.65*DJ + 0.65*PJ + 0.65*IJ + 0.65*INFOJ
+
+  # Variances of indicators (error variances) are implicitly estimated by simulateData()
+  # based on the specified factor loadings and latent variances.
+'
+
+# Set the number of observations
+n_obs <- 500 # You can change this to your desired sample size
+
+# Simulate the data
+set.seed(123) # for reproducibility
+cfa_data <- simulateData(model, sample.nobs = n_obs)
+
+# Display the first few rows of the simulated data
+head(cfa_data)
+
+# You can now use the 'simulated_data' data frame for analysis or other purposes.
+```
+
+
+#Transform to likert scale
+
+```{r}
+# --- Transform continuous data to a 1-7 Likert scale ---
+
+# Get the names of the indicator variables
+indicator_names <- c(
+  "ss1", "ss2", "ss3",
+  "dj1", "dj2", "dj3",
+  "pj1", "pj2", "pj3", "pj4", "pj5", "pj6", "pj7",
+  "ij1", "ij2", "ij3", "ij4",
+  "infoj1", "infoj2", "infoj3", "infoj4",
+  "pa1", "pa2", "pa3",
+  "nega1", "nega2", "nega3",
+  "pos1", "pos2", "pos3"
+)
+
+# Create a new data frame for Likert data
+likert_data <- cfa_data
+
+# Function to transform a continuous vector to 1-7 scale
+transform_to_likert <- function(x) {
+  # Scale the data to a reasonable range for Likert (e.g., -3.5 to 3.5)
+  # and shift/scale to 1-7. This is a heuristic approach.
+  # A more sophisticated approach would involve thresholds based on a desired
+  # distribution or using packages designed for simulating ordinal data.
+
+  # Simple linear scaling to approx 0-8 range then round and clamp to 1-7
+  # This assumes the continuous data has a mean around 0.
+  min_val <- min(x, na.rm = TRUE)
+  max_val <- max(x, na.rm = TRUE)
+
+  # Scale to a range slightly larger than 1-7 (e.g., 0.5 to 7.5)
+  scaled_x <- 0.5 + (x - min_val) / (max_val - min_val) * 7
+
+  # Round to the nearest integer
+  rounded_x <- round(scaled_x)
+
+  # Clamp values to be within 1 and 7
+  likert_x <- pmax(1, pmin(7, rounded_x))
+
+  return(likert_x)
+}
+
+# Apply the transformation to each indicator column
+for (col_name in indicator_names) {
+  if (col_name %in% colnames(likert_data)) {
+    likert_data[[col_name]] <- transform_to_likert(likert_data[[col_name]])
+  }
+}
+
+# Display the first few rows of the simulated Likert data
+head(likert_data)
+
+# Get summary statistics to check the distribution
+summary(likert_data)
+```
+
+Plot each variable to check if it is reasonable
+
+```{r}
+#| warning: false
+likert_data |> 
+  pivot_longer(cols = everything()) |> 
+  ggplot(aes(value)) +
+  geom_histogram(binwidth = .5) +
+  scale_x_continuous(breaks = seq(1, 7, 1), limits = c(0.5, 7.5)) +
+  facet_wrap(vars(name))
+```
+
+Save the simulated data to allow for later use.
+
+```{r}
+likert_data |> readr::write_csv(file.path(getwd(), "_data", "baseline.csv"))
+```
+
+## Download the Data
+
+Click on the button to download the data
+
+```{r}
+#| echo: false
+library(downloadthis)
+likert_data |>
+  download_this(
+    output_name = "simulated_cmv_data",
+    output_extension = ".xlsx",
+    button_label = "Download data",
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+```
+
+## Check the Simulated Data
+
+Let's see what the results are when we try to fit the data to the model
+
+```{r}
+fit<- cfa(cfa_sim_model, likert_data, meanstructure = TRUE)
+summary(fit)
+```

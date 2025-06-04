@@ -1,0 +1,56 @@
+project:
+  type: website
+  # make sure pages are rendered in the order they are listed
+  render: 
+   - "index.qmd"
+   - "GenerateBaselineData.qmd"
+   - "IER-CMVInterplay.qmd"
+   - "Avatars.qmd"
+   - "MalloryAnalysis.qmd"
+   - "DarrenAnalysis.qmd"
+   - "BartAnalysis.qmd"
+   - "ScarlettAnalysis.qmd"
+   
+website:
+  title: "CMV-IER Simulation"
+  sidebar:
+    style: docked
+    search: false
+    contents:
+      - href: index.qmd
+        text: Home
+      - href: GenerateBaselineData.qmd
+        text: Generate Baseline Data
+      - href: Avatars.qmd
+        text: IER Avatars
+      # - section: "Analyses"
+      #   contents:
+      #     - href: MalloryAnalysis.qmd
+      #       text: Mallory
+      #     - href: DarrenAnalysis.qmd
+      #       text: Darren
+      #     - href: BartAnalysis.qmd
+      #       text: Bart
+      #     - href: ScarlettAnalysis.qmd
+      #       text: Scarlett
+    tools:
+      - icon: github
+        href: https://github.com/twitched/cmv-ier-sim
+      
+
+format:
+  html:
+    theme: 
+      - cosmo 
+      - custom.scss    
+    css: styles.css
+    toc: true
+    page-layout: full
+    monofont: "Fira Code"
+    df-print: paged
+    link-citations: true
+    code-fold: show
+    code-tools: true
+    html-math-method: katex
+    repo-url: https://github.com/twitched/cmv-ier-sim
+    repo-text: "GitHub"

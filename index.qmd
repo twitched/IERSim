@@ -1,0 +1,24 @@
+---
+title: "CMV-IER Simulation Main"
+author: "Raglund, Fuller, Simmering, Twitchell"
+format: html
+bibliography: references.bib
+---
+
+## IER Simulation
+
+This is a set of pages that run through simulating and testing data for the CMV IER project by Elizabeth Raglund, Christie Fuller, Marcia Simmering, and Doug Twitchell.
+
+## Generate Baseline Data
+
+In this simulation, we generate a data set with no IER. This is the baseline data set that we will use to compare to the other data sets.
+
+[Generate Baseline Data](GenerateBaselineData.qmd)
+
+## Generate Data from IER Avatars
+
+[Generate Data from IER Avatars](Avatars.qmd)
+
+## Analyze each Avatar
+
+TBD 

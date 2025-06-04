@@ -1,0 +1,249 @@
+---
+title: "IER Avatars"
+author: "Ragland, Twitchell"
+date: today
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+library(tidyverse)
+library(lavaan)
+
+set.seed(1337)
+
+#show all of the columns as histograms
+histograms <- function(data) {
+  data <- data |> 
+  pivot_longer(cols = everything())
+  
+  #ensure measure names retain their order
+  data$name <- as.character(data$name)
+  data$name <- factor(data$name, levels=unique(data$name))
+  
+  #plot
+  ggplot(data, aes(value)) +
+  geom_histogram(binwidth = .5) +
+  scale_x_continuous(breaks = seq(1, 7, 1), limits = c(0.5, 7.5)) +
+  facet_wrap(vars(name))
+}
+
+```
+
+To create simulated insufficient error response data, we will use avatars. Each avatar has a name and an IER pattern.
+
+We will also need a survey structure the avatars will fill.  We can obtain the structure from the model.  However, the structure is not the only part needed.  We will also need to set the order of the survey since some avatars have a pattern that depends on the order of the survey. We will also need to add marker variables for CMV.
+
+For now we will use the order of the data as the order of the survey and add in a CMV marker variable.  We will assume that all of our simulated data is from users who always choose "Strongly Agree" for the CMV marker variable.
+
+```{r}
+#get the simulated data
+sim_data <- readr::read_csv(file.path(getwd(), "_data", "baseline.csv"))
+
+sim_data
+
+```
+
+::: {.callout-warning}
+These functions all assume every question is a 7-point Likert scale.  
+:::
+
+## Avatar 1: Mallory
+
+Mallory is an accountant at a hotel management company. The HR manager at Mallory’s company is friends with a professor at a local university, so about once every year, Mallory and her coworkers are asked to complete surveys for research studies. As an incentive for participating in a survey when asked, if at least 50% of the company completes the survey, the office closes early the Friday after the survey closes. Most of the surveys ask about work environment and behaviors, including citizenship behaviors, organizational justice, workplace deviance, and job performance. When Mallory completed the first few surveys, she paid close attention to the survey items and answered thoughtfully and honestly, thinking the results of the survey might lead to improvements in the office (and a half-day off work). However, after about five years of taking these surveys, she realized changes weren’t coming, only the half-day off. At that point, her only motivation for participating in the survey was to make sure she did her part to get the survey participation rate up to the goal that was set for the survey. As a result, Mallory has stopped reading the questions in the survey altogether and just selects “neutral” for every item.
+
+### Generate Data
+
+```{r}
+#| label: mallory
+
+# this function returns one mallory row with the structure of example_data
+mallory <- function(example_data) {example_data[1,] |> mutate(across(everything(), ~4))}
+
+mallory(sim_data)
+
+```
+
+
+We only need one line of Mallory.  To get multiple lines for insertion into a dataset, we can use `replicate`:
+```{r}
+#| label: Mallories
+#For example, to get 5 lines of Mallories
+mallories <- function(num_rows, example_data) {replicate(num_rows, mallory(example_data), simplify = FALSE) |> bind_rows()}
+mallories(5, sim_data)
+
+```
+### Graph
+
+```{r}
+#| label: MalloryGraph
+#| warning: false
+
+# Note: the histograms function is defined in the setup block of this page
+mallories(1, sim_data) |> histograms()
+
+```
+
+## Avatar 2: Darren
+
+Darren is an attorney and works for the same company as Mallory. He’s never been a fan of the surveys because frankly, he feels like he is way too busy for something as silly as academic research. However, everyone hounds him to complete the surveys when they come around because of the promise of a half-day off work if the participation rate for the survey is high enough. He’s worried that if he doesn’t appear to take the survey seriously, his responses won’t be recorded, rendering his time completing the survey completely wasted. So, to appear like he’s thoughtfully responding to the survey, he randomly selects responses to the survey items so that there’s no risk of his responses being scrapped.
+
+### Generate Data
+
+```{r}
+#| label: Darren
+
+# Darren's pattern is to randomly select a response for each item.  For Darren, we need to know how many we need in advance
+
+# This function will return num_rows darrens with the structure of example_data
+darren <- function(num_rows, example_data) {
+  1:num_rows |> 
+    map(\(x) example_data[1,] |> mutate(across(everything(), ~sample(1:7, 1)))) |> 
+    list_rbind()
+}
+
+darren(10, sim_data)
+
+```
+
+### Graph
+
+```{r}
+#| label: DarrenGraph
+#| warning: false
+
+darren(500, sim_data) |> histograms()
+```
+
+## Avatar 3: Bart
+
+Bart is a financial analyst who lives and works in a large metropolitan area. He commutes to work by train every day, and the trip is about 45 minutes each way. His work is stressful and draining, so sometimes he completes surveys online to wind down after a long day. He gets paid to do it, but that isn’t even something he thinks about when selecting surveys to complete. Bart’s “payment” is the enjoyment he gets from completing surveys. He likes to be introspective, likening it to meditation, so completing surveys is fascinating to him. So, when Bart completes a survey, he gives it his full attention. Well, he gives it his full attention for as long as he can. Some surveys are just too long, and he gets fatigued by repetitive questions that seem to go on and on. When that happens, Bart tries to give his brain a break by skimming questions or randomly allowing himself to zone out while reading questions after he’s been in a survey for a while.
+
+### Comments
+
+This is the trickier one. Currently, our survey is too short to simulate Bart. Christie and I had talked about needing to add more variables to our simulation for this. However, Christie mentioned that they have always kept the scales short for our CMV studies because CMV is more likely to be detected that way. Are we going to be washing out the CMV possibility with a longer set of items? My question is—how does a longer list of short scales affect our ability to detect CMV? I’d assume in a similar way, right?
+
+### Generate Data
+
+```{r}
+#| label: Bart
+
+# change the given data to look like a set of Bart responses
+bart <- function(existing_data) {
+  # randomly select about half of the columns to be Bart's random point of zoning out
+  col_num <- length(names(existing_data)) 
+  existing_data |> 
+    # use row numbers to pivot each respondent into a group
+    mutate (row_num = row_number()) |>
+    pivot_longer(cols = -row_num, names_to = "question", values_to = "response") |> 
+    group_by(row_num) |>
+    # randomly select about half of the columns to be Bart's random point of zoning out
+    group_modify ( ~{
+      about_half <- rnorm(1, col_num/2, col_num/10) |> round()
+      
+      # keep the first half of the columns
+      start <- .x |> slice_head(n = col_num - about_half)
+      
+      # replace the second half of the columns with random responses
+      end <- .x |> slice_tail(n = about_half) |>
+      mutate(response = sample(1:7, about_half, replace = TRUE))
+      
+      # put them back together
+      rbind(start, end) 
+    }) |>
+    # put the data back into tabular format
+    pivot_wider(names_from = question, values_from = response) |> ungroup() |> select(-row_num)
+ }
+
+bart(slice_sample(sim_data, n = 10))
+
+```
+
+### Graph
+
+```{r}
+#| label: BartGraph
+#| warning: false
+
+bart(sim_data) |> histograms()
+```
+
+## Avatar 4: Scarlett
+
+Scarlett is an office manager who spends most of her day at work filing paperwork and ordering office supplies. She has quite a bit of downtime at work, so she completes surveys to earn some extra cash. However, she has often had to rush through completing surveys due to being called into meetings last minute. Scarlett has read on blogs and message boards that researchers often use trap questions and consistency screening methods to catch participants who are rushing or careless, and those participants don’t get paid for their work. So, when she must rush through a survey (whether it’s halfway through a survey or for its entirety), she’s come up with her own system. First, she reads the first question on the page to decide how to answer the rest of the items. Since she doesn’t want to seem too consistent, she varies her answers for the rest of the page around her answer to the first item. Then, while answering the items on the rest of the page in a nonrandom pattern, she pays just enough attention to the survey items to spot catch questions such as, “Please mark STRONGLY AGREE for this item,” or “I am paid biweekly by gremlins,” so that she will answer those items correctly.
+
+### Comments
+
+For this avatar, we’d need the response to the first item on a page to be selected randomly. Then, each subsequent response is a random choice within a constrained range around the first response. For example, if “4” is the response for the first item, subsequent items on the page should be a random selection of 3, 4, or 5.
+
+### Generate Data
+
+To make this work, we need to indicate which items are on a page.  
+
+```{r}
+#| label: Scarlett
+
+# We'll create a tibble with each variable and on what page it appears
+page_table <- tribble(
+  ~question, ~page,
+   "ssr1",   1,
+   "ssr2",   1,
+   "ssr3",   1,
+   "ri1",    1,
+   "ri2",    1,
+   "ri3",    1,
+   "wom1",   1,
+   "wom2",   1,
+   "wom3",   1,
+   "cmv1",   1,
+   "sat1",   2,
+   "sat2",   2,
+   "sat3",   2,
+   "dj1",    2,
+   "dj2",    2,
+   "dj3",    2,
+   "dj4",    2,
+   "ij1",    3,
+   "ij2",    3,
+   "ij3",    3,
+   "ij4",    3,
+   "pj1",    3,
+   "pj2",    3,
+   "pj3",    3,
+   "pj4",    3
+)
+
+# This function will return num_rows scarletts with the structure of example_data and the page structure abov
+scarlett <- function(num_rows, page_table) {
+  1:num_rows |> 
+    map(\(x) {
+      page_table |> group_by(page) |> 
+        group_modify(~{
+          # give every question on the page the same value
+          g <- .x |> mutate(value = sample(1:7, 1))
+          # create a vector of normally distributed adjustments for the all questions 
+          # with the first being zero
+          adjustments <- c(0, rnorm(nrow(g) - 1, 0, 1) |> round())
+          # adjust each value by the random amount
+          g |> mutate(value = value + adjustments) |>
+            # make sure the values are between 1 and 7
+            mutate(value = pmax(1, pmin(7, value)))
+        }) |> ungroup() |> select(-page) |>
+        # put into tabular format
+        pivot_wider(names_from = question, values_from = value) 
+    }) |>
+    list_rbind()
+}
+
+scarlett(10, page_table)
+
+```
+### Graph
+
+```{r}
+#| label: ScarlettGraph
+#| warning: false
+
+scarlett(500, page_table) |> histograms()
+```
