@@ -2,6 +2,7 @@
 # install.packages("MASS")
 library(MASS)
 library(tidyverse)
+library(lavaan)
 
 # --------------------------------------------------------------------------
 # 1. Define Model Parameters and Inputs
